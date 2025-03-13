@@ -59,7 +59,26 @@ S_BOXES = [
      [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11]]
 ]
 
-round_keys = ["010101010101010101010101010101010101010101010101" for _ in range(16)]
+round_keys = [
+    "101101111110000101100111101001011011010100000101",
+    "001000010111110100010110110000011100010001011111",
+    "011100010011001110101011010100001110110100110010",
+    "010011011101001001001010111011000011010110010101",
+    "101010101001100110001011010111110100110010111011",
+    "110011010011001001010100111100001111110100010010",
+    "111101001010010101011010100111110001011011101100",
+    "011101110010110110001101110101110000110010011011",
+    "101111000011110010110111001001000110101101001101",
+    "001010111010011011001011101111001101011001101010",
+    "011010110101100001111010010001110011100111001001",
+    "110011101001101000010110011011001010011010110010",
+    "110001000110001100101001110110100110101001110111",
+    "001101110101100011001011101011010101110111010010",
+    "001100111001000101111001010001001011110100101110",
+    "110101001010010110100110011101001000101101111011"
+]
+
+iv = "1010101110110011001100110101010101011010010101010101011101101011"
 
 def permute(block: str, table: List[int]) -> str:
     return ''.join([block[i - 1] for i in table])
@@ -69,7 +88,6 @@ def expand(block: str) -> str:
 
 def xor(b1: str, b2: str) -> str:
     return ''.join(str(int(b1[i]) ^ int(b2[i])) for i in range(len(b1)))
-
 
 def s_box(bits, index=0, result=""):
     
@@ -89,33 +107,74 @@ def s_box(bits, index=0, result=""):
         result + f"{r:04b}" 
     )
 
-def DES(keys = round_keys,bits =""):
+def DES(bits):
+    # doing the initial permutation
     bits = permute(bits, IP) 
+
+    # splitting the bits into left and right
     left = bits[:32]
     right =bits[32:]
+
+    # 16 rounds of DES
     for i in range(16):
         expanded = expand(right)
-        print(expanded)
+        #print(expanded)
         round_key = round_keys[i]
-        xored = xor(expanded, round_key)
-        print(xored)
+        xored = xor(expanded, round_keys[i])
+        #print(xored)
         substituted = s_box(xored)
-        print(substituted)
+        #print(substituted)
         permuted = permute(substituted, P)
-        print(permuted)
+        #print(permuted)
         new_right = xor(left, permuted)
-        print(new_right)
+        #print(new_right)
         left = right
         right = new_right
+    
+    # swapping the left and right
     bits = right + left
-    print(bits)
+    #print(bits)
+
+    # final permutation
     ciphertext = permute(bits, FP)
-    print(ciphertext)
+    #print(ciphertext)
+    return ciphertext
+
+def CBC(plaintext, iv):
+    blocks = [plaintext[i:i+64] for i in range(0, len(plaintext), 64)]
+    ciphertext = ""
+    prev_block = iv
+    
+    for block in blocks:
+        # Pad block if necessary
+        if len(block) < 64:
+            # Add zeros to the left until block is 64 bits long
+            block = block.zfill(64)
+            
+        # XOR with previous ciphertext block (or IV for first block)
+        xored = xor(block, prev_block)
+        
+        # Encrypt using DES
+        encrypted = DES(xored)
+        
+        # Add to result
+        ciphertext += encrypted
+        
+        # Update previous block for next iteration
+        prev_block = encrypted
+        
     return ciphertext
 
 if __name__ == "__main__":
+    # Define a test key and plaintext
+    plaintext = "0000000100100011010001010110011110001001101010111100110111101111"
+    
+    # Encrypt using DES with CBC mode
+    ciphertext = CBC(plaintext, iv)
 
-
-    key = "1010101010101010101010101010101010101010101010101010101010101010"
-    iv = "0000000000000000000000000000000000000000000000000000000000000000"
-    round_keys = [key] * 16
+    # Encrypt using DES without CBC mode
+    ciphertext2 = DES(plaintext)
+    
+    print(f"Plaintext:  {plaintext}")
+    print(f"CBC: {ciphertext}")
+    print(f"DES: {ciphertext2}")
