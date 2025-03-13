@@ -1,29 +1,21 @@
 from typing import List
 import binascii
 
-IP = [
-    58, 50, 42, 34, 26, 18, 10, 2, 60, 52, 44, 36, 28, 20, 12, 4,
-    62, 54, 46, 38, 30, 22, 14, 6, 64, 56, 48, 40, 32, 24, 16, 8,
-    57, 49, 41, 33, 25, 17, 9, 1, 59, 51, 43, 35, 27, 19, 11, 3,
-    61, 53, 45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7
-]
+IP = [58, 50, 42, 34, 26, 18, 10, 2, 60, 52, 44, 36, 28, 20, 12, 4,
+      62, 54, 46, 38, 30, 22, 14, 6, 64, 56, 48, 40, 32, 24, 16, 8,
+      57, 49, 41, 33, 25, 17, 9, 1, 59, 51, 43, 35, 27, 19, 11, 3,
+      61, 53, 45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7]
 
 FP = [40, 8, 48, 16, 56, 24, 64, 32, 39, 7, 47, 15, 55, 23, 63, 31,
       38, 6, 46, 14, 54, 22, 62, 30, 37, 5, 45, 13, 53, 21, 61, 29,
       36, 4, 44, 12, 52, 20, 60, 28, 35, 3, 43, 11, 51, 19, 59, 27,
       34, 2, 42, 10, 50, 18, 58, 26, 33, 1, 41, 9, 49, 17, 57, 25]
 
+E = [32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9, 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17,
+     16, 17, 18, 19, 20, 21, 20, 21, 22, 23, 24, 25, 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1]
 
-E = [
-    32, 1, 2, 3, 4, 5,
-    4, 5, 6, 7, 8, 9,
-    8, 9, 10, 11, 12, 13,
-    12, 13, 14, 15, 16, 17,
-    16, 17, 18, 19, 20, 21,
-    20, 21, 22, 23, 24, 25,
-    24, 25, 26, 27, 28, 29,
-    28, 29, 30, 31, 32, 1
-]
+P = [16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10,
+     2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25]
 
 S_BOXES = [
     [[14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
@@ -67,9 +59,6 @@ S_BOXES = [
      [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11]]
 ]
 
-P = [16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10,
-     2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25]
-
 round_keys = ["010101010101010101010101010101010101010101010101" for _ in range(16)]
 
 def permute(block: str, table: List[int]) -> str:
@@ -81,28 +70,52 @@ def expand(block: str) -> str:
 def xor(b1: str, b2: str) -> str:
     return ''.join(str(int(b1[i]) ^ int(b2[i])) for i in range(len(b1)))
 
-def DES(plain_text: str, key: str) -> str:
-    plain_text = permute(plain_text, IP)
-    left, right = plain_text[:32], plain_text[32:]
 
+def s_box(bits, index=0, result=""):
+    
+    if index == 8:
+        return result
+    
+    target_bits = bits[:6]
+    
+    row = int(target_bits[0] + target_bits[5], 2)
+    column = int(target_bits[1:5], 2)
+    
+    r = S_BOXES[index][row][column]
+    
+    return s_box(
+        bits[6:], 
+        index + 1, 
+        result + f"{r:04b}" 
+    )
+
+def DES(keys = round_keys,bits =""):
+    bits = permute(bits, IP) 
+    left = bits[:32]
+    right =bits[32:]
     for i in range(16):
-        right_expanded = expand(right)
-        right_expanded = xor(right_expanded, round_keys[i])
-        right_expanded = ''.join([right_expanded[j:j + 6] for j in range(0, 48, 6)])
-
-        sboxed = ''
-        for j in range(8):
-            block = right_expanded[j * 6:(j + 1) * 6]
-            row = int(block[0] + block[5], 2)
-            col = int(block[1:5], 2)
-            sboxed += format(S_BOXES[j][row][col], '04b')
-
-        right = permute(sboxed, P)
-        right = xor(right, left)
+        expanded = expand(right)
+        print(expanded)
+        round_key = round_keys[i]
+        xored = xor(expanded, round_key)
+        print(xored)
+        substituted = s_box(xored)
+        print(substituted)
+        permuted = permute(substituted, P)
+        print(permuted)
+        new_right = xor(left, permuted)
+        print(new_right)
         left = right
+        right = new_right
+    bits = right + left
+    print(bits)
+    ciphertext = permute(bits, FP)
+    print(ciphertext)
+    return ciphertext
 
-    final = permute(right + left, FP)
-    return final
+if __name__ == "__main__":
 
-en = DES("0000000100100011010001010110011110001001101010111100110111101111", "0001001100110100010101110111100110011011101111001101111111110001")
-print(en)
+
+    key = "1010101010101010101010101010101010101010101010101010101010101010"
+    iv = "0000000000000000000000000000000000000000000000000000000000000000"
+    round_keys = [key] * 16
