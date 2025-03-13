@@ -94,7 +94,22 @@ def s_box(bits, index=0, result=""):
         result + f"{r:04b}" 
     )
 
-
+def DES(keys = round_keys,bits =""):
+    bits = permute(bits, IP) 
+    left = bits[:32]
+    right =bits[32:]
+    for i in range(16):
+        expanded = expand(right)
+        round_key = round_keys[i]
+        xored = xor(expanded, round_key)
+        substituted = s_box(xored)
+        permuted = permute(substituted, P)
+        new_right = xor(left, permuted)
+        left = right
+        right = new_right
+    bits = right + left
+    ciphertext = permute(bits, FP)
+    return ciphertext
 
 if __name__ == "__main__":
 
