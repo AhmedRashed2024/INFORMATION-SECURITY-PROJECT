@@ -78,7 +78,7 @@ round_keys = [
     "110101001010010110100110011101001000101101111011"
 ]
 
-iv = "1010101110110011001100110101010101011010010101010101011101101011"
+iv = "1010101110110011001100110101010101011010010101010101011101101010"
 
 def permute(block: str, table: List[int]) -> str:
     return ''.join([block[i - 1] for i in table])
@@ -89,6 +89,25 @@ def expand(block: str) -> str:
 def xor(b1: str, b2: str) -> str:
     return ''.join(str(int(b1[i]) ^ int(b2[i])) for i in range(len(b1)))
 
+def string_to_binary(input_string):
+    return ''.join(format(ord(char), '08b') for char in input_string)
+
+
+def binary_to_string(binary_string: str) -> str:
+    import base64
+    
+    # Ensure the binary string's length is a multiple of 8
+    if len(binary_string) % 8 != 0:
+        binary_string = binary_string.ljust((len(binary_string) + 7) // 8 * 8, '0')
+    
+    # Convert each 8-bit chunk into a byte
+    chunks = [binary_string[i:i+8] for i in range(0, len(binary_string), 8)]
+    data_bytes = bytes(int(chunk, 2) for chunk in chunks)
+    
+    # Encode the bytes in Base64 for simple, readable output
+    return base64.b64encode(data_bytes).decode("ascii")
+    
+    return result_string
 def s_box(bits, index=0, result=""):
     
     if index == 8:
@@ -165,6 +184,17 @@ def CBC(plaintext, iv):
         
     return ciphertext
 
+def CBC_TEXT(text: str, iv: str) -> str:
+
+    binary_plaintext = string_to_binary(text)
+    
+    # Encrypt using CBC mode
+    binary_ciphertext = CBC(binary_plaintext, iv)
+    
+    string_ciphertext = binary_to_string(binary_ciphertext)
+    
+    return string_ciphertext
+
 if __name__ == "__main__":
     # Define a test key and plaintext
     plaintext = "0000000100100011010001010110011110001001101010111100110111101111"
@@ -174,7 +204,13 @@ if __name__ == "__main__":
 
     # Encrypt using DES without CBC mode
     ciphertext2 = DES(plaintext)
+
+    # Encrypt using CBC mode with text input
+    text = "Hello, World!"
+    ciphertext3 = CBC_TEXT(text, iv)
     
     print(f"Plaintext:  {plaintext}")
     print(f"CBC: {ciphertext}")
+    print(f"CBC_TEXT: {ciphertext3}")
     print(f"DES: {ciphertext2}")
+
