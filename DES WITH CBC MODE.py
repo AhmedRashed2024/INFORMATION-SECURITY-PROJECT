@@ -100,15 +100,22 @@ def DES(keys = round_keys,bits =""):
     right =bits[32:]
     for i in range(16):
         expanded = expand(right)
+        print(expanded)
         round_key = round_keys[i]
         xored = xor(expanded, round_key)
+        print(xored)
         substituted = s_box(xored)
+        print(substituted)
         permuted = permute(substituted, P)
+        print(permuted)
         new_right = xor(left, permuted)
+        print(new_right)
         left = right
         right = new_right
     bits = right + left
+    print(bits)
     ciphertext = permute(bits, FP)
+    print(ciphertext)
     return ciphertext
 
 if __name__ == "__main__":
